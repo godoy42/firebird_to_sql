@@ -1,0 +1,4 @@
+firebird-driver
+pandas
+pymssql
+pyodbc
