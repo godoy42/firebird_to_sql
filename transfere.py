@@ -12,14 +12,9 @@ def query_do_arquivo(arquivo):
         query = f.read()
     return query
 
-def transfere(query, tabela, linhas_leitura=None, linhas_gravacao=None):
+def transfere(query, tabela, linhas_leitura=10000, linhas_gravacao=100):
     conn_fb = configs.conexao_firebird()
     conn_sql = configs.conexao_sql()
-    conf_linhas = configs.le_configs()["linhas"]
-    if not linhas_leitura:
-        linhas_leitura = conf_linhas["leitura"]
-    if not linhas_gravacao:
-        linhas_gravacao = conf_linhas["gravacao"]
 
     chunks = pd.read_sql(query, con=conn_fb, chunksize=linhas_leitura)
     num_recs = 0
@@ -33,9 +28,9 @@ def transfere(query, tabela, linhas_leitura=None, linhas_gravacao=None):
 
     return num_recs
 
-def main(arquivo, tabela):
+def main(arquivo, tabela, linhas_leitura, linhas_gravacao):
     query = query_do_arquivo(arquivo)
-    linhas = transfere(query, tabela)
+    linhas = transfere(query, tabela, linhas_leitura, linhas_gravacao)
     print(f"{linhas} linhas transferidas")
 
 if __name__ == "__main__":
@@ -44,6 +39,11 @@ if __name__ == "__main__":
                     help="Especifica o arquivo onde se encontra a query")
     parser.add_argument("-t", "--tabela", dest="tabela", required=True,
                     help="Especifica nome da tabela a ser gravada no SQL")
+    conf_linhas = configs.le_configs()["linhas"]
+    parser.add_argument("-l", "--leitura", dest="leitura", required=False, default=conf_linhas["leitura"],
+                    help="Especifica quantidade de linhas na leitura")
+    parser.add_argument("-g", "--gravacao", dest="gravacao", required=False, default=conf_linhas["gravacao"],
+                    help="Especifica quantidade de linhas na gravação")
     args = parser.parse_args()
     
-    main(args.arquivo, args.tabela)
+    main(args.arquivo, args.tabela, args.leitura, args.gravacao)
