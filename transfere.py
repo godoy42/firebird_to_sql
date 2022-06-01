@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from argparse import ArgumentParser
 import configs
 import pandas as pd
@@ -34,7 +35,7 @@ def main(arquivo, tabela, linhas_leitura, linhas_gravacao):
     print(f"{linhas} linhas transferidas")
 
 if __name__ == "__main__":
-    parser = ArgumentParser(description="Lê dados no firebird e manda pro sql")
+    parser = ArgumentParser(description="Le dados no firebird e manda pro sql")
     parser.add_argument("-a", "--arquivo", dest="arquivo", required=True,
                     help="Especifica o arquivo onde se encontra a query")
     parser.add_argument("-t", "--tabela", dest="tabela", required=True,
@@ -43,7 +44,7 @@ if __name__ == "__main__":
     parser.add_argument("-l", "--leitura", dest="leitura", required=False, default=conf_linhas["leitura"],
                     help="Especifica quantidade de linhas na leitura")
     parser.add_argument("-g", "--gravacao", dest="gravacao", required=False, default=conf_linhas["gravacao"],
-                    help="Especifica quantidade de linhas na gravação")
+                    help="Especifica quantidade de linhas na gravacao")
     args = parser.parse_args()
     
     main(args.arquivo, args.tabela, args.leitura, args.gravacao)
