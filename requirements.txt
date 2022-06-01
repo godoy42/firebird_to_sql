@@ -2,3 +2,5 @@ firebird-driver
 pandas
 pymssql
 pyodbc
+protobuf~=3.19.0
+sqlalchemy
