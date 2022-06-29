@@ -2,29 +2,49 @@
 from argparse import ArgumentParser
 import configs
 import pandas as pd
+import logging
 
-def schema():
+logger = logging.getLogger()
+
+def busca_schema():
     conf = configs.le_configs()["sql"]
     return conf["schema"]
 
 def query_do_arquivo(arquivo):
-    print(f"lendo query de {arquivo}")
+    logger.info(f"lendo query de {arquivo}")
     with open(arquivo, 'r') as f:
         query = f.read()
     return query
 
-def transfere(query, tabela, linhas_leitura=10000, linhas_gravacao=100):
+def transfere(query, tabela, linhas_leitura=100000, linhas_gravacao=100):
+    logger.info("Conectando no firebird")
     conn_fb = configs.conexao_firebird()
+    logger.info("Conectando no sql")
     conn_sql = configs.conexao_sql()
 
+    logger.info("Fazendo leitura no firebird")
     chunks = pd.read_sql(query, con=conn_fb, chunksize=linhas_leitura)
     num_recs = 0
-    print(f"gravando a cada {linhas_gravacao} linhas")
+    schema=busca_schema()
+    
+    logger.info(f"Iniciando a gravação no sql")
 
     for chunk, df in enumerate(chunks):
-        print(f"gravando trecho #{chunk}")
-        if_exists = 'replace' if chunk == 0 else 'append'
-        df.to_sql(tabela, conn_sql, schema=schema(), if_exists=if_exists, chunksize=linhas_gravacao)
+        logger.info(f"gravando trecho #{chunk}")
+        if chunk == 0:
+            logger.info(f"Limpando tabela [{schema}].[{tabela}]")
+            try:
+                conn_sql.execute(f"TRUNCATE TABLE {schema}.{tabela}")
+                conn_sql.execute(f"COMMIT TRAN")
+            except Exception as e:
+                logger.warning(str(e))
+        
+        chunksize = 2099 // len(df.columns)
+        if chunksize > 999:
+            #[42000] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]The number of row value expressions in the INSERT statement exceeds the maximum allowed number of 1000 row values. (10738) (SQLExecDirectW)
+            chunksize = 999
+        
+        df.to_sql(tabela, conn_sql, schema=schema, if_exists='append', chunksize=chunksize)
         num_recs += len(df)
 
     return num_recs
@@ -32,7 +52,7 @@ def transfere(query, tabela, linhas_leitura=10000, linhas_gravacao=100):
 def main(arquivo, tabela, linhas_leitura, linhas_gravacao):
     query = query_do_arquivo(arquivo)
     linhas = transfere(query, tabela, linhas_leitura, linhas_gravacao)
-    print(f"{linhas} linhas transferidas")
+    logger.info(f"{linhas} linhas transferidas")
 
 if __name__ == "__main__":
     parser = ArgumentParser(description="Le dados no firebird e manda pro sql")
